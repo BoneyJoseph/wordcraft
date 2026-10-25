@@ -45,21 +45,6 @@ impl WordApp {
     }
 }
 
-pub(crate) fn check(app: &mut WordApp) {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        app.updates_rt.check_requested = true;
-        if let Some(ctx) = &app.updates_rt.repaint {
-            ctx.request_repaint();
-        }
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        app.updates_rt.manual_window_open = true;
-        app.updates_rt.status_message = Some(tl!("Update check is not supported in the web browser.").to_string());
-    }
-}
-
 pub(crate) fn tick(app: &mut WordApp, ctx: &egui::Context) {
     #[cfg(not(target_arch = "wasm32"))]
     {
