@@ -1,0 +1,46 @@
+name: Apple Silicon Community App
+
+on:
+  push:
+    branches: [custom/apple-silicon-community]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apple-silicon:
+    name: Build native WordCraft DMG
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      CARGO_INCREMENTAL: "0"
+      MACOS_SIGN_IDENTITY: "-"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: wordcraft-community-apple-silicon
+      - name: Verify source for Apple Silicon
+        run: cargo check --locked --target aarch64-apple-darwin -p wordcraft -p wordcraft-cli
+      - name: Build ARM64 application and DMG
+        run: bash packaging/macos/package.sh --arch aarch64
+      - name: Validate bundle and disk image
+        run: |
+          set -euo pipefail
+          test -d target/macos-package/WordCraft.app
+          lipo -archs target/macos-package/WordCraft.app/Contents/MacOS/WordCraft | grep -w arm64
+          codesign --verify --strict --deep target/macos-package/WordCraft.app
+          ls -lh dist/release/*macos-aarch64.dmg
+      - name: Upload installable artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: WordCraft-Apple-Silicon-Custom-DMG
+          path: |
+            dist/release/*macos-aarch64.dmg
+            dist/release/*macos-aarch64.zip
+          if-no-files-found: error
+          retention-days: 30

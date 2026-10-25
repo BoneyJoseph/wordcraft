@@ -102,7 +102,16 @@ echo "==> assembling $APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 # Executable and icon carry the display name (CFBundleExecutable / CFBundleIconFile).
 cp "$WORK/bin/wordcraft" "$APP/Contents/MacOS/WordCraft"
-cp "$ROOT/assets/app-icon/wordcraft.icns" "$APP/Contents/Resources/WordCraft.icns"
+# Generate a dedicated community-build icon; do not reuse the upstream artwork.
+ICON_DIR="$WORK/custom-icon.iconset"
+mkdir -p "$ICON_DIR"
+swift "$HERE/custom-icon.swift" "$WORK/custom-icon-1024.png"
+for edge in 16 32 128 256 512; do
+  sips -s format png -z "$edge" "$edge" "$WORK/custom-icon-1024.png" --out "$ICON_DIR/icon_${edge}x${edge}.png" >/dev/null
+  double=$((edge * 2))
+  sips -s format png -z "$double" "$double" "$WORK/custom-icon-1024.png" --out "$ICON_DIR/icon_${edge}x${edge}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICON_DIR" -o "$APP/Contents/Resources/WordCraft.icns"
 # Licences of the embedded craft-fonts fonts (only when built with CRAFT_FONTS_DIR).
 copy_docs "$APP/Contents/Resources"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT_VERSION@/$SHORT_VERSION/g" \
