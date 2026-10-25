@@ -320,10 +320,7 @@ ArtCraft Team and are not covered by this license. They may be used only unmodif
 part of this repository and WordCraft, under [`docs/brand/LICENSE-brand.txt`](docs/brand/LICENSE-brand.txt).
 Forks and modified versions must remove them.
 
-<p align="center">
-  <a href="https://getartcraft.com/"><img alt="ArtCraft" src="docs/brand/artcraft-mark.svg" width="28"></a><br>
-  <sub>Made by the <a href="https://getartcraft.com/">ArtCraft</a> team and community.</sub>
-</p>
+<p align="center"><sub>Custom community edition based on WordCraft. Original authorship and copyright are preserved in the repository notices.</sub></p>
 
 
 ### Community Apple Silicon build
