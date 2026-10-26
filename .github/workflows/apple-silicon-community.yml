@@ -69,7 +69,7 @@ jobs:
             const olderLean = artifacts.filter(a => a.name === name && a.id !== currentId && !a.expired)
               .sort((a, b) => b.id - a.id);
             const keep = new Set([currentId, ...olderLean.slice(0, 1).map(a => a.id)]);
-            const old = artifacts.filter(a => oldNames.has(a.name) && !keep.has(a.id));
+            const old = artifacts.filter(a => !a.expired && oldNames.has(a.name) && !keep.has(a.id));
             for (const a of old) {
               await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
               core.info(`Deleted old installer ${a.name} (#${a.id})`);
