@@ -1,4 +1,4 @@
-name: Apple Silicon Community App
+name: Apple Silicon Community App (Lean)
 
 on:
   push:
@@ -24,10 +24,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: wordcraft-community-apple-silicon
+      - name: Validate packaging script
+        run: bash -n packaging/macos/package.sh
       - name: Verify source for Apple Silicon
-        run: cargo check --locked --target aarch64-apple-darwin -p wordcraft -p wordcraft-cli
+        run: cargo check --locked --target aarch64-apple-darwin -p wordcraft
       - name: Build ARM64 application and DMG
-        run: bash packaging/macos/package.sh --arch aarch64
+        run: bash packaging/macos/package.sh --arch aarch64 --app-only
       - name: Validate bundle and disk image
         run: |
           set -euo pipefail
@@ -38,9 +40,8 @@ jobs:
       - name: Upload installable artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: WordCraft-Apple-Silicon-Custom-DMG
+          name: WordCraft-Apple-Silicon-Lean-DMG
           path: |
             dist/release/*macos-aarch64.dmg
-            dist/release/*macos-aarch64.zip
           if-no-files-found: error
           retention-days: 30
