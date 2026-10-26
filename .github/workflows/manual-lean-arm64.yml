@@ -1,0 +1,58 @@
+name: Manual Lean Apple Silicon DMG
+
+# Keep this launcher on the default branch to expose the "Run workflow" button.
+# It builds the maintained custom edition without changing or merging main.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build WordCraft ARM64 installer
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - name: Check out custom app edition
+        uses: actions/checkout@v4
+        with:
+          ref: custom/apple-silicon-community
+          persist-credentials: false
+      - name: Identify source revision
+        run: |
+          git show -s --format='%H %s'
+          test "$(git branch --show-current)" = "custom/apple-silicon-community"
+      - name: Set up ARM64 Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+      - name: Reuse Rust build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: wordcraft-manual-lean-arm64
+      - name: Validate packaging and GUI source
+        run: |
+          bash -n packaging/macos/package.sh
+          cargo check --locked --target aarch64-apple-darwin -p wordcraft
+      - name: Build GUI-only macOS DMG
+        env:
+          MACOS_SIGN_IDENTITY: "-"
+          CARGO_INCREMENTAL: "0"
+        run: bash packaging/macos/package.sh --arch aarch64 --app-only
+      - name: Verify installer
+        run: |
+          set -euo pipefail
+          app=target/macos-package/WordCraft.app
+          test -d "$app"
+          test -f "$app/Contents/MacOS/WordCraft"
+          lipo -archs "$app/Contents/MacOS/WordCraft" | grep -w arm64
+          codesign --verify --strict --deep "$app"
+          ls -lh dist/release/*macos-aarch64.dmg
+      - name: Upload installable lean DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: WordCraft-Apple-Silicon-Lean-DMG
+          path: dist/release/*macos-aarch64.dmg
+          if-no-files-found: error
+          retention-days: 30
