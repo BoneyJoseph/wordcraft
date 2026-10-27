@@ -1,0 +1,44 @@
+name: Installer Artifact Cleanup
+
+# Runs once when added to this custom branch; can also be run manually later.
+on:
+  push:
+    branches: [custom/apple-silicon-community]
+    paths:
+      - .github/workflows/installer-cleanup.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  cleanup:
+    name: Delete obsolete installers, preserve a rollback
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Clean previous Apple Silicon DMG artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const leanName = 'WordCraft-Apple-Silicon-Lean-DMG';
+            const legacyName = 'WordCraft-Apple-Silicon-Custom-DMG';
+            const { owner, repo } = context.repo;
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              owner, repo, per_page: 100,
+            });
+            const newest = list => list.sort((a, b) => b.id - a.id);
+            const lean = newest(artifacts.filter(a => a.name === leanName && !a.expired));
+            const legacy = newest(artifacts.filter(a => a.name === legacyName && !a.expired));
+            // Never delete the only known-good installer before a replacement exists.
+            const retained = lean.length ? lean.slice(0, 2) : legacy.slice(0, 1);
+            const keep = new Set(retained.map(a => a.id));
+            const obsolete = artifacts.filter(a =>
+              !a.expired && (a.name === leanName || a.name === legacyName) && !keep.has(a.id)
+            );
+            for (const artifact of obsolete) {
+              await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: artifact.id });
+              core.info(`Deleted ${artifact.name} (#${artifact.id})`);
+            }
+            core.info(`Kept ${retained.length} installer artifact(s), removed ${obsolete.length} obsolete installer(s).`);
